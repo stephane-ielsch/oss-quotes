@@ -1,8 +1,9 @@
 import fs, { writeFile } from 'fs';
-import { IQuote } from './model.js';
 import path from 'path';
+import { IQuote } from './model';
+import { config } from './config.js';
 
-const HISTORY_SIZE = 100;
+const HISTORY_SIZE = config.historySize;
 
 export function getHistory(numberOfQuotes?: number): Promise<IQuote[]> {
     let path = "./dist/data/quotesHistory.json";

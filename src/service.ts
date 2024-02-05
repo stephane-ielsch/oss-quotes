@@ -1,11 +1,12 @@
 
 import axios, { AxiosError } from 'axios';
-// import http
-import { ICharacter, IQuote } from './model';
+import type { ICharacter, IQuote } from './model';
 import { shuffle, toArray } from './utils.js';
+import { config } from './config.js';
 
 
-const baseUrl = "https://api.oss117quotes.xyz/v1";
+const baseUrl = config.apiUrl;
+
 
 export function getRandomQuotes(numberOfQuote?: number): Promise<IQuote[]> {
     let url = `${baseUrl}/random`;
@@ -17,8 +18,8 @@ export function getRandomQuotes(numberOfQuote?: number): Promise<IQuote[]> {
             return toArray(response.data);
         })
         .catch(function (error: AxiosError) {
-            console.log(JSON.stringify(error.message));
-            return null;
+            console.error(JSON.stringify(error.message));
+            return [];
         });
 }
 
@@ -26,7 +27,7 @@ export function getRandomQuotes(numberOfQuote?: number): Promise<IQuote[]> {
 
 export function getRandomQuoteFromCharacter(character: string, numberOfQuotes?: number, keyword?: string): Promise<IQuote[]> {
 
-    let url = `${baseUrl}/author/${character}`;
+    let url = `${baseUrl}/author/${character.toLocaleLowerCase()}`;
     if (numberOfQuotes) {
         url = `${url}/${numberOfQuotes}`;
     }
@@ -34,9 +35,9 @@ export function getRandomQuoteFromCharacter(character: string, numberOfQuotes?: 
     return axios.get<IQuote[]>(url)
         .then(function (response) {
             if (!response.data) {
-                return;
+                return [];
             }
-            let quoteArray = toArray(response.data);
+            const quoteArray = toArray(response.data);
             if (keyword) {
                 return quoteArray.filter((quote: IQuote) => {
                     return quote.sentence.split(" ").includes(keyword);
@@ -46,9 +47,9 @@ export function getRandomQuoteFromCharacter(character: string, numberOfQuotes?: 
             }
         })
         .catch(function (error: AxiosError) {
-            console.log(url);
-            console.log(JSON.stringify(error.message));
-            return null;
+            console.error(url);
+            console.error(JSON.stringify(error.message));
+            return [];
         });
 }
 
@@ -60,24 +61,27 @@ export function getAllCharacters(): Promise<ICharacter[]> {
             return toArray(response.data);
         })
         .catch(function (error: AxiosError) {
-            console.log(JSON.stringify(error.message));
-            return null;
+            console.error(JSON.stringify(error.message));
+            return [];
         });
 }
 
 
 
 export function getAllQuotes(): Promise<IQuote[]> {
-    let quotes: IQuote[] = [];
+    const quotes: IQuote[] = [];
     return getAllCharacters().then((characters: ICharacter[]) => {
         characters.forEach((character: ICharacter) => {
-            character.quotes.forEach((quote) => {
-                delete character.quotes;
-                quotes.push({
-                    "sentence": quote,
-                    "character": character
+            if (character.quotes) {
+                character.quotes.forEach((quote) => {
+                    delete character.quotes;
+                    quotes.push({
+                        "sentence": quote,
+                        "character": character
+                    })
                 })
-            })
+            }
+
         })
         return quotes;
     })
@@ -96,7 +100,11 @@ export function getQuotes(keyword?: string, numberOfQuote?: number, character?: 
         }
 
         if (keyword) {
-            quotes = quotes.filter((quote: IQuote) => quote.sentence.split(" ").includes(keyword));
+            quotes = quotes.filter((quote: IQuote) => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+                return regex.test(quote.sentence);
+            }
+            );
         }
 
         if (numberOfQuote && numberOfQuote < quotes.length) {

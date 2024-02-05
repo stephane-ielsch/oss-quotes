@@ -3,7 +3,7 @@ export function toArray(data: any) {
 }
 
 
-export function shuffle(array) {
+export function shuffle(array: any[]) {
     let currentIndex = array.length, randomIndex;
     while (currentIndex > 0) {
         randomIndex = Math.floor(Math.random() * currentIndex);
